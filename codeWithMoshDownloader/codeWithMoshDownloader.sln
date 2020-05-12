@@ -1,9 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.28922.388
-MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "codeWithMoshDownloader", "codeWithMoshDownloader\codeWithMoshDownloader.csproj", "{B6D8F93C-9DE3-4183-A0E0-B2CA7655F732}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "codeWithMoshDownloader", "codeWithMoshDownloader\codeWithMoshDownloader.csproj", "{F0552ADA-62C6-464F-918F-B2F8794667E4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,15 +8,9 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{B6D8F93C-9DE3-4183-A0E0-B2CA7655F732}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B6D8F93C-9DE3-4183-A0E0-B2CA7655F732}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B6D8F93C-9DE3-4183-A0E0-B2CA7655F732}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B6D8F93C-9DE3-4183-A0E0-B2CA7655F732}.Release|Any CPU.Build.0 = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {69BC5709-E28D-4B6C-9491-B6DE431768AE}
+		{F0552ADA-62C6-464F-918F-B2F8794667E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F0552ADA-62C6-464F-918F-B2F8794667E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F0552ADA-62C6-464F-918F-B2F8794667E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F0552ADA-62C6-464F-918F-B2F8794667E4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
