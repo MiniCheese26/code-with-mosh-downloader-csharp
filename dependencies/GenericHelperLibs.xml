@@ -1,0 +1,137 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>GenericHelperLibs</name>
+    </assembly>
+    <members>
+        <member name="T:GenericHelperLibs.ConfigLoader`1">
+            <summary>
+            Helper class to simplify loading json config files and deserializing them
+            </summary>
+            <typeparam name="T">Type to deserialize to, must be a class</typeparam>
+        </member>
+        <member name="P:GenericHelperLibs.ConfigLoader`1.ConfigPath">
+            <summary>
+            Path to config to read from
+            </summary>
+        </member>
+        <member name="M:GenericHelperLibs.ConfigLoader`1.#ctor(System.String)">
+            <summary>
+            
+            </summary>
+            <param name="configPath">Path to config to read from</param>
+        </member>
+        <member name="M:GenericHelperLibs.ConfigLoader`1.LoadConfig">
+            <summary>
+            Deserializes json data from a file into an object
+            </summary>
+            <returns>Deserialized object of config json, can be null - plus a failure message if needed</returns>
+        </member>
+        <member name="M:GenericHelperLibs.ConfigLoader`1.WriteConfig(`0)">
+            <summary>
+            Writes to config file with deserialized data
+            </summary>
+            <param name="data">Data to write</param>
+            <returns>Bool to indicate success</returns>
+        </member>
+        <member name="T:GenericHelperLibs.Logger">
+            <summary>
+            Simple logger for logging to console and a file
+            </summary>
+        </member>
+        <member name="M:GenericHelperLibs.Logger.#ctor(System.Boolean)">
+            <summary>
+            
+            </summary>
+            <param name="debugging">Is the application in a debug mode</param>
+        </member>
+        <member name="M:GenericHelperLibs.Logger.Log(System.String,System.Boolean,System.Boolean,System.Boolean)">
+            <summary>
+            Logs a message to the console, logs to file if debugging
+            </summary>
+            <param name="message">Message to print and or write</param>
+            <param name="isVerbose">Will only process message if logger configured as debugging</param>
+            <param name="addPreNewLine">Add newline to the start of your message, only effects console message</param>
+            <param name="addPostNewLine">Add newline to the end of your message, only effects console message</param>
+        </member>
+        <member name="M:GenericHelperLibs.Logger.LogToFile(System.String)">
+            <summary>
+            Logs message to log file even if not debugging, doesn't print message
+            </summary>
+            <param name="message">Message to print and or write</param>
+        </member>
+        <member name="M:GenericHelperLibs.Logger.LogAndUpdateLine(System.String,System.Int32)">
+            <summary>
+            Logs a message and clears a set line in the console, is thread-safe
+            </summary>
+            <param name="message">Message to update line with</param>
+            <param name="line">Line to update</param>
+        </member>
+        <member name="M:GenericHelperLibs.Logger.LogAndReturn``1(System.String,``0,System.Boolean)">
+            <summary>
+            Calls <see cref="M:GenericHelperLibs.Logger.Log(System.String,System.Boolean,System.Boolean,System.Boolean)"/> whilst also returning a generic value, useful for combining a return and log
+            </summary>
+            <param name="message">Message to print and or write</param>
+            <param name="value">Value to return</param>
+            <param name="isVerbose">Will only process message if logger configured as debugging</param>
+            <typeparam name="T">Value type</typeparam>
+            <returns>Supplied value</returns>
+        </member>
+        <member name="T:GenericHelperLibs.NumberedInputMenu">
+            <summary>
+            Helper class to streamline a numbered option console input
+            </summary>
+        </member>
+        <member name="M:GenericHelperLibs.NumberedInputMenu.#ctor">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="M:GenericHelperLibs.NumberedInputMenu.Add(System.Int32,System.String)">
+            <summary>
+            Adds a new message to the input menu along with the corresponding index
+            </summary>
+            <param name="index"></param>
+            <param name="message"></param>
+        </member>
+        <member name="M:GenericHelperLibs.NumberedInputMenu.Add(System.String)">
+            <summary>
+            Adds a new message to the input menu and uses the highest index already added + 1
+            </summary>
+            <param name="message"></param>
+        </member>
+        <member name="M:GenericHelperLibs.NumberedInputMenu.Reset">
+            <summary>
+            Clears menu
+            </summary>
+        </member>
+        <member name="M:GenericHelperLibs.NumberedInputMenu.Prompt(System.String)">
+            <summary>
+            Displays menu and input prompt
+            </summary>
+            <returns>Selected option index</returns>
+        </member>
+        <member name="T:GenericHelperLibs.Static.General">
+            <summary>
+            General non-specific helper methods
+            </summary>
+        </member>
+        <member name="M:GenericHelperLibs.Static.General.Prompt(System.String,System.Func{System.String,System.Boolean},System.Boolean,System.Boolean)">
+            <summary>
+            Provides an easy way to prompt the user with an input and validate the response
+            </summary>
+            <param name="message">Message to display</param>
+            <param name="failureConditions">Delegate that validates the users input</param>
+            <param name="takingPath">If true, removes any " from input</param>
+            <param name="addPostNewLine">Adds an extra line after the input is complete</param>
+            <returns>Validated response</returns>
+        </member>
+        <member name="M:GenericHelperLibs.Static.General.Prompt``1(System.String,System.Func{``0,System.Boolean},System.Boolean,System.Boolean)">
+            <summary>
+            <inheritdoc cref="M:GenericHelperLibs.Static.General.Prompt(System.String,System.Func{System.String,System.Boolean},System.Boolean,System.Boolean)"/>
+            <typeparam name="T">Struct type for response to be casted to</typeparam>
+            <returns>Validated response, can be default value if response cast fails</returns>
+            </summary>
+        </member>
+    </members>
+</doc>
