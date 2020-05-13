@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using GenericHelperLibs;
 using Newtonsoft.Json;
 
 namespace codeWithMoshDownloader
@@ -24,6 +25,28 @@ namespace codeWithMoshDownloader
                 
                 _downloadLocation = value;
             }
+        }
+
+        public static Config? GetConfig(Logger logger)
+        {
+            string? assemblyPath = Helpers.GetAssemblyDirectoryPath();
+
+            if (assemblyPath == null)
+            {
+                logger.Log("Failed to get assembly location, can't load config");
+                return null;
+            }
+
+            var configPath = Path.Combine(assemblyPath, "config.json");
+
+            var configLoader = new ConfigLoader<Config>(configPath);
+            (Config? config, string failureMessage) = configLoader.LoadConfig();
+
+            if (config != null)
+                return config;
+            
+            logger.Log($"Failed to load config, can't load session id, {failureMessage}");
+            return null;
         }
     }
 }
