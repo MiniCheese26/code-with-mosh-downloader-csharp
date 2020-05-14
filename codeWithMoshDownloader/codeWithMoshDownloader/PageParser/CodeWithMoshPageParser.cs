@@ -8,6 +8,7 @@ using codeWithMoshDownloader.PageParser;
 using codeWithMoshDownloader.PageParser.Models;
 using GenericHelperLibs;
 using HtmlAgilityPack;
+using Newtonsoft.Json.Linq;
 
 namespace codeWithMoshDownloader
 {
@@ -91,27 +92,86 @@ namespace codeWithMoshDownloader
             {
                 var attachmentType = htmlNode.GetClasses().ToList()[1].Split("-").Last();
 
+                // extract these later
+                
                 switch (attachmentType)
                 {
                     case "text":
                     case "html":
-                        var messageHtml = htmlNode.SelectSingleNode("./div[@class='lecture-text-container']")
+                        var messageHtmlNode = htmlNode.SelectSingleNode("div[@class='lecture-text-container']")
                             .SafeAccessHtmlNode(x => x.InnerHtml);
                         
-                        if (messageHtml.Contains("May I ask you a favor?", StringComparison.OrdinalIgnoreCase))
+                        if (messageHtmlNode.Contains("May I ask you a favor?", StringComparison.OrdinalIgnoreCase))
                             continue;
                         
-                        var l = new LectureHtmlFile
+                        var htmlFile = new LectureHtmlFile
                         {
-                            Contents = messageHtml,
+                            Contents = messageHtmlNode,
                             Filename = lectureHeading + ".html"
                         };
+                        
+                        lecture.LectureHtmlFiles.Add(htmlFile);
                         break;
-                    case "file":
+                    case "quiz":
+                        var answerJsonHtmlNode = htmlNode.FirstChild;
+                        
+                        if (answerJsonHtmlNode == null)
+                            continue;
+
+                        var answerJson =
+                            HttpUtility.HtmlDecode(
+                                answerJsonHtmlNode.SafeAccessHtmlNode(x => x.Attributes["data-data"].Value));
+                        var questionJson =
+                            HttpUtility.HtmlDecode(
+                                answerJsonHtmlNode.SafeAccessHtmlNode(x => x.Attributes["data-schema"].Value));
+                        
+                        if (string.IsNullOrWhiteSpace(answerJson) || string.IsNullOrWhiteSpace(questionJson))
+                            continue;
+
+                        JObject l = PageParserHelpers.SafeJObjectParse(answerJson);
+                        JObject g = PageParserHelpers.SafeJObjectParse(questionJson);
+
+                        var p = g["properties"];
+                        JEnumerable<JProperty>? r = l["answerKey"]?.Children<JProperty>();
+                        
+                        var t = new List<QuizItem>();
                         
                         break;
                     case "pdf_embed":
+                        HtmlNode pdfHtmlNode = htmlNode.SelectSingleNode("div[@class='download-pdf']/div[last()]/a");
+
+                        if (pdfHtmlNode == null)
+                            continue;
                         
+                        var pdfDownloadUrl = pdfHtmlNode.SafeAccessHtmlNode(x => x.Attributes["href"].Value);
+                        var pdfFilename = pdfHtmlNode.SafeAccessHtmlNode(x => x.Attributes["data-x-origin-download-name"].Value);
+                        
+                        var pdfDownload = new DirectLectureDownloadableAttachment(_codeWithMoshClient, _logger)
+                        {
+                            Filename = pdfFilename,
+                            Url = pdfDownloadUrl
+                        };
+                        
+                        lecture.DownloadableLectureContent.Add(pdfDownload);
+                        break;
+                    case "file":
+                    case "pdf":
+                        HtmlNode fileHtmlNode = htmlNode.SelectSingleNode("div[last()]/a");
+                        
+                        if (fileHtmlNode == null)
+                            continue;
+
+                        var downloadUrl = fileHtmlNode.SafeAccessHtmlNode(x => x.Attributes["href"].Value);
+                        var filename =
+                            fileHtmlNode.SafeAccessHtmlNode(x => x.Attributes["data-x-origin-download-name"].Value);
+                        
+                        var fileDownload = new DirectLectureDownloadableAttachment(_codeWithMoshClient, _logger)
+                        {
+                            Filename = filename,
+                            Url = downloadUrl
+                        };
+                        
+                        lecture.DownloadableLectureContent.Add(fileDownload);
                         break;
                 }
             }
@@ -134,11 +194,11 @@ namespace codeWithMoshDownloader
             var lecturePageHtmlDocument = new HtmlDocument();
             lecturePageHtmlDocument.LoadHtml(lecturePageContent);
             
-            var lectureHeadingNode = lecturePageHtmlDocument.DocumentNode.SelectSingleNode("//h2[@id='lecture_heading']");
+            HtmlNode lectureHeadingNode = lecturePageHtmlDocument.DocumentNode.SelectSingleNode("//h2[@id='lecture_heading']");
 
             var lectureHeading = lectureHeadingNode.SafeGetHtmlNodeInnerText();
 
-            var sectionTitleNode = lecturePageHtmlDocument.DocumentNode.SelectSingleNode(
+            HtmlNode sectionTitleNode = lecturePageHtmlDocument.DocumentNode.SelectSingleNode(
                 $"//div[@class='section-title' and //span[contains(text(), '{lectureHeading}')]]");
 
             var sectionTitle = sectionTitleNode
@@ -170,7 +230,7 @@ namespace codeWithMoshDownloader
         
         private string ParseCourseTitle(HtmlDocument htmlDocument)
         {
-            var courseTitleNode = htmlDocument.DocumentNode.SelectSingleNode("//div[contains(@class, 'course-sidebar')]/h2");
+            HtmlNode courseTitleNode = htmlDocument.DocumentNode.SelectSingleNode("//div[contains(@class, 'course-sidebar')]/h2");
 
             return courseTitleNode.SafeGetHtmlNodeInnerText();
         }
@@ -190,11 +250,11 @@ namespace codeWithMoshDownloader
             var coursePageHtmlDocument = new HtmlDocument();
             coursePageHtmlDocument.LoadHtml(coursePageContent);
 
-            var courseSectionNodes = coursePageHtmlDocument.DocumentNode.SelectNodes("//div[@class='row']/div");
+            HtmlNodeCollection courseSectionNodes = coursePageHtmlDocument.DocumentNode.SelectNodes("//div[@class='row']/div");
             
             foreach (HtmlNode courseSectionNode in courseSectionNodes)
             {
-                var sectionTitleNode = courseSectionNode.SelectSingleNode("./div[@class='section-title']");
+                HtmlNode sectionTitleNode = courseSectionNode.SelectSingleNode("div[@class='section-title']");
 
                 var sectionTitle = sectionTitleNode
                     .SafeGetHtmlNodeInnerText()
@@ -205,7 +265,7 @@ namespace codeWithMoshDownloader
                     SectionTitle = sectionTitle
                 };
 
-                var sectionLectureList = courseSectionNode.SelectSingleNode("./ul");
+                HtmlNode sectionLectureList = courseSectionNode.FirstChild.SelectSingleNode("ul");
                 
                 if (sectionLectureList == null)
                     continue;
@@ -218,5 +278,12 @@ namespace codeWithMoshDownloader
                 yield return courseSection;
             }
         }
+    }
+
+    internal class QuizItem
+    {
+        public string? QuestionTitle { get; set; }
+        public List<string> Questions { get; } = new List<string>();
+        public List<string> Answers { get; } = new List<string>();
     }
 }

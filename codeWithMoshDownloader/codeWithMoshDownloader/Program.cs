@@ -11,29 +11,46 @@ namespace codeWithMoshDownloader
     {
         private static void Main(string[] args)
         {
-            var parser = new Parser(with => with.HelpWriter = null);
-
-            var parserResult = parser.ParseArguments<Arguments>(args);
+            ParserResult<object> parserResult =
+                Parser.Default.ParseArguments<DownloadArguments, RipInfoArguments, RipArguments>(args);
 
             parserResult
-                .WithParsed(Run)
+                .WithParsed<DownloadArguments>(Run)
+                .WithParsed<RipInfoArguments>(Run)
+                .WithParsed<RipArguments>(Run)
                 .WithNotParsed(err => Fail(parserResult, err));
         }
 
-        private static void Run(Arguments arguments)
+        private static void Run(DownloadArguments downloadArguments)
         {
-            var logger = new Logger(arguments.Debug);
+            (Config config, Logger logger) = GetConfigAndLogger(downloadArguments);
+            
+            var mainProcess = new Downloader(logger, downloadArguments, config);
+            mainProcess.Run().GetAwaiter().GetResult();
+        }
 
+        private static void Run(RipInfoArguments ripInfoArguments)
+        {
+            (Config config, Logger logger) = GetConfigAndLogger(ripInfoArguments);
+        }
+
+        private static void Run(RipArguments ripArguments)
+        {
+            (Config config, Logger logger) = GetConfigAndLogger(ripArguments);
+        }
+
+        private static (Config config, Logger logger) GetConfigAndLogger(ArgumentBase argumentBase)
+        {
+            var logger = new Logger(argumentBase.Debug);
             var config = Config.GetConfig(logger);
             
             if (config == null)
                 Environment.Exit(1);
-            
-            var mainProcess = new MainProcess(logger, arguments, config);
-            mainProcess.Run().GetAwaiter().GetResult();
+
+            return (config, logger);
         }
 
-        private static void Fail(ParserResult<Arguments> result, IEnumerable<Error> errors)
+        private static void Fail(ParserResult<object> result, IEnumerable<Error> errors)
         {
             HelpText? helpText;
 

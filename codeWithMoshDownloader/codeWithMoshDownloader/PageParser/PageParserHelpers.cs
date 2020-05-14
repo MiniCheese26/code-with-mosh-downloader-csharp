@@ -2,6 +2,8 @@
 using System.Text.RegularExpressions;
 using System.Web;
 using HtmlAgilityPack;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace codeWithMoshDownloader.PageParser
 {
@@ -39,6 +41,22 @@ namespace codeWithMoshDownloader.PageParser
             {
                 return string.Empty;
             }
+        }
+
+        public static JObject SafeJObjectParse(string stringToParse)
+        {
+            JObject jObject;
+
+            try
+            {
+                jObject = JObject.Parse(stringToParse);
+            }
+            catch (JsonReaderException)
+            {
+                return new JObject();
+            }
+
+            return jObject;
         }
     }
 }

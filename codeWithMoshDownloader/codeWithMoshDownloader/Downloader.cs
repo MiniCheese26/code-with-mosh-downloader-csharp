@@ -4,21 +4,22 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using codeWithMoshDownloader.ArgumentParsing;
+using codeWithMoshDownloader.PageParser.Models;
 using GenericHelperLibs;
 
 namespace codeWithMoshDownloader
 {
-    internal class MainProcess
+    internal class Downloader
     {
         private readonly Logger _logger;
-        private readonly Arguments _arguments;
+        private readonly DownloadArguments _downloadArguments;
         private readonly Config _config;
         private readonly CodeWithMoshClient _codeWithMoshClient;
 
-        public MainProcess(Logger logger, Arguments arguments, Config config)
+        public Downloader(Logger logger, DownloadArguments downloadArguments, Config config)
         {
             _logger = logger;
-            _arguments = arguments;
+            _downloadArguments = downloadArguments;
             _config = config;
             _codeWithMoshClient = new CodeWithMoshClient(_config.SessionId ?? "", _logger);
         }
@@ -50,7 +51,7 @@ namespace codeWithMoshDownloader
         private async Task<bool> DownloadLecture()
         {
             var l = new CodeWithMoshPageParser(_codeWithMoshClient, _logger);
-            var e = await l.ParseLecture("https://codewithmosh.com/courses/223623/lectures/3517430");
+            Lecture? e = await l.ParseLecture("https://codewithmosh.com/courses/223623/lectures/3517438");
             
             return true;
         }
@@ -62,7 +63,7 @@ namespace codeWithMoshDownloader
 
         private (string courseId, string lectureId) ParseInputUrl()
         {
-            var urlMatch = Regex.Match(_arguments.InputUrl,
+            Match urlMatch = Regex.Match(_downloadArguments.Input,
                 @"https:\/\/codewithmosh\.com\/courses\/(?:enrolled\/)?(?'courseId'\d+)(?:\/lectures\/(?'lectureId'\d+))?",
                 RegexOptions.IgnoreCase);
 
