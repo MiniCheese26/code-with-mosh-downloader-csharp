@@ -31,7 +31,7 @@ namespace codeWithMoshDownloader
         {
             using HttpResponseMessage? mainPageResponse = await MakeGet("https://codewithmosh.com/");
 
-            if (mainPageResponse == null)
+            if (mainPageResponse == null || !mainPageResponse.IsSuccessStatusCode)
                 return false;
 
             var mainPageContent = await mainPageResponse.Content.ReadAsStringAsync();

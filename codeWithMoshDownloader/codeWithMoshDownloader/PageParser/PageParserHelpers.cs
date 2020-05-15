@@ -20,7 +20,7 @@ namespace codeWithMoshDownloader.PageParser
                 : string.Empty;
 
         public static string CleanSectionTitleInnerText(this string titleInnerText) =>
-            Regex.Match(titleInnerText, @"(?'sectionTitle'[\w\W]+?)\(\d+m\)", RegexOptions.IgnoreCase)
+            Regex.Match(titleInnerText, @"(?'sectionTitle'[\w\W]+?)\((?:\d+h)?\d+m\)", RegexOptions.IgnoreCase)
                 .SafeGetMatchValue("sectionTitle").Trim();
 
         public static string SafeGetHtmlNodeInnerText(this HtmlNode node) =>

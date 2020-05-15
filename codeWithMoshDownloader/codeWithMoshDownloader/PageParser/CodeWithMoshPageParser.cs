@@ -1,16 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
-using System.Web;
-using codeWithMoshDownloader.PageParser;
-using codeWithMoshDownloader.PageParser.Models;
+using codeWithMoshDownloader.PageParser.Models.Lectures;
 using GenericHelperLibs;
 using HtmlAgilityPack;
-using Newtonsoft.Json.Linq;
 
-namespace codeWithMoshDownloader
+namespace codeWithMoshDownloader.PageParser
 {
     internal class CodeWithMoshPageParser
     {
@@ -25,9 +21,9 @@ namespace codeWithMoshDownloader
 
         public async Task<Lecture?> ParseLecture(string lectureUrl)
         {
-            HttpResponseMessage? lecturePageResponse = await _codeWithMoshClient.MakeGet(lectureUrl);
+            using HttpResponseMessage? lecturePageResponse = await _codeWithMoshClient.MakeGet(lectureUrl);
 
-            if (lecturePageResponse == null)
+            if (lecturePageResponse == null || !lecturePageResponse.IsSuccessStatusCode)
             {
                 _logger.Log($"Failed to get lecture page content of {lectureUrl}");
                 return null;
@@ -69,14 +65,14 @@ namespace codeWithMoshDownloader
                 
                 lecture.DownloadableLectureContent.Add(embedDirectDownload);
             }
-            else if (string.IsNullOrWhiteSpace(lectureVideoEmbedDownloadUrl) && !string.IsNullOrWhiteSpace(lectureWistiaId))
+            else if (!string.IsNullOrWhiteSpace(lectureWistiaId))
             {
                 _logger.Log($"Found Wistia ID for {lectureUrl}", true);
                 
                 var wistiaDownload = new WistiaLectureStream(_codeWithMoshClient, _logger)
                 {
                     Filename = lectureHeading + ".mp4",
-                    Url = lectureWistiaId
+                    Url = $"https://fast.wistia.net/embed/medias/{lectureWistiaId}.json"
                 };
 
                 lecture.WistiaLectureStream = wistiaDownload;
@@ -87,6 +83,9 @@ namespace codeWithMoshDownloader
             }
 
             var attachments = lecturePageHtmlDocument.DocumentNode.SelectNodes("//div[contains(@id, 'lecture-attachment') and not(contains(@class, 'lecture-attachment-type-video'))]");
+
+            if (attachments == null)
+                return lecture;
             
             foreach (HtmlNode htmlNode in attachments)
             {
@@ -98,21 +97,14 @@ namespace codeWithMoshDownloader
                 {
                     case "text":
                     case "html":
-                        var messageHtmlNode = htmlNode.SelectSingleNode("div[@class='lecture-text-container']")
-                            .SafeAccessHtmlNode(x => x.InnerHtml);
-                        
-                        if (messageHtmlNode.Contains("May I ask you a favor?", StringComparison.OrdinalIgnoreCase))
-                            continue;
-                        
-                        var htmlFile = new LectureHtmlFile
-                        {
-                            Contents = messageHtmlNode,
-                            Filename = lectureHeading + ".html"
-                        };
-                        
-                        lecture.LectureHtmlFiles.Add(htmlFile);
+                        lecture.ProcessAndAddHtmlFile(htmlNode, lectureHeading);
                         break;
                     case "quiz":
+                        break;
+                        
+                        // finish later, not important
+                        
+/*
                         var answerJsonHtmlNode = htmlNode.FirstChild;
                         
                         if (answerJsonHtmlNode == null)
@@ -137,41 +129,21 @@ namespace codeWithMoshDownloader
                         var t = new List<QuizItem>();
                         
                         break;
+*/
                     case "pdf_embed":
-                        HtmlNode pdfHtmlNode = htmlNode.SelectSingleNode("div[@class='download-pdf']/div[last()]/a");
-
-                        if (pdfHtmlNode == null)
-                            continue;
+                        DirectLectureDownloadableAttachment? pdfEmbed = ProcessPdfEmbed(htmlNode);
                         
-                        var pdfDownloadUrl = pdfHtmlNode.SafeAccessHtmlNode(x => x.Attributes["href"].Value);
-                        var pdfFilename = pdfHtmlNode.SafeAccessHtmlNode(x => x.Attributes["data-x-origin-download-name"].Value);
+                        if (pdfEmbed != null)
+                            lecture.DownloadableLectureContent.Add(pdfEmbed);
                         
-                        var pdfDownload = new DirectLectureDownloadableAttachment(_codeWithMoshClient, _logger)
-                        {
-                            Filename = pdfFilename,
-                            Url = pdfDownloadUrl
-                        };
-                        
-                        lecture.DownloadableLectureContent.Add(pdfDownload);
                         break;
                     case "file":
                     case "pdf":
-                        HtmlNode fileHtmlNode = htmlNode.SelectSingleNode("div[last()]/a");
+                        DirectLectureDownloadableAttachment? fileAttachment = ProcessFileAttachment(htmlNode);
                         
-                        if (fileHtmlNode == null)
-                            continue;
-
-                        var downloadUrl = fileHtmlNode.SafeAccessHtmlNode(x => x.Attributes["href"].Value);
-                        var filename =
-                            fileHtmlNode.SafeAccessHtmlNode(x => x.Attributes["data-x-origin-download-name"].Value);
+                        if (fileAttachment != null)
+                            lecture.DownloadableLectureContent.Add(fileAttachment);
                         
-                        var fileDownload = new DirectLectureDownloadableAttachment(_codeWithMoshClient, _logger)
-                        {
-                            Filename = filename,
-                            Url = downloadUrl
-                        };
-                        
-                        lecture.DownloadableLectureContent.Add(fileDownload);
                         break;
                 }
             }
@@ -179,11 +151,46 @@ namespace codeWithMoshDownloader
             return lecture;
         }
 
+        private DirectLectureDownloadableAttachment? ProcessPdfEmbed(HtmlNode htmlNode)
+        {
+            HtmlNode pdfHtmlNode = htmlNode.SelectSingleNode("div[@class='download-pdf']/div[last()]/a");
+
+            if (pdfHtmlNode == null)
+                return null;
+                        
+            var pdfDownloadUrl = pdfHtmlNode.SafeAccessHtmlNode(x => x.Attributes["href"].Value);
+            var pdfFilename = pdfHtmlNode.SafeAccessHtmlNode(x => x.Attributes["data-x-origin-download-name"].Value);
+                        
+            return new DirectLectureDownloadableAttachment(_codeWithMoshClient, _logger)
+            {
+                Filename = pdfFilename,
+                Url = pdfDownloadUrl
+            };
+        }
+        
+        private DirectLectureDownloadableAttachment? ProcessFileAttachment(HtmlNode htmlNode)
+        {
+            HtmlNode fileHtmlNode = htmlNode.SelectSingleNode("div[last()]/a");
+                        
+            if (fileHtmlNode == null)
+                return null;
+
+            var downloadUrl = fileHtmlNode.SafeAccessHtmlNode(x => x.Attributes["href"].Value);
+            var filename =
+                fileHtmlNode.SafeAccessHtmlNode(x => x.Attributes["data-x-origin-download-name"].Value);
+                        
+            return new DirectLectureDownloadableAttachment(_codeWithMoshClient, _logger)
+            {
+                Filename = filename,
+                Url = downloadUrl
+            };
+        }
+
         public async Task<(string? courseTitle, string? sectionTitle)> ParseSectionAndCourseTitleFromLecture(string lectureUrl)
         {
-            HttpResponseMessage? lecturePageResponse = await _codeWithMoshClient.MakeGet(lectureUrl);
+            using HttpResponseMessage? lecturePageResponse = await _codeWithMoshClient.MakeGet(lectureUrl);
 
-            if (lecturePageResponse == null)
+            if (lecturePageResponse == null || !lecturePageResponse.IsSuccessStatusCode)
             {
                 _logger.Log($"Failed to get lecture page content of {lectureUrl}");
                 return (null, null);
@@ -212,9 +219,9 @@ namespace codeWithMoshDownloader
 
         public async Task<string?> ParseCourseTitle(string url)
         {
-            HttpResponseMessage? pageResponse = await _codeWithMoshClient.MakeGet(url);
+            using HttpResponseMessage? pageResponse = await _codeWithMoshClient.MakeGet(url);
 
-            if (pageResponse == null)
+            if (pageResponse == null || !pageResponse.IsSuccessStatusCode)
             {
                 _logger.Log($"Failed to get page content of {url}");
                 return null;
@@ -237,9 +244,9 @@ namespace codeWithMoshDownloader
 
         public async IAsyncEnumerable<CourseSection> ParseCourseContents(string courseUrl)
         {
-            HttpResponseMessage? coursePageResponse = await _codeWithMoshClient.MakeGet(courseUrl);
+            using HttpResponseMessage? coursePageResponse = await _codeWithMoshClient.MakeGet(courseUrl);
 
-            if (coursePageResponse == null)
+            if (coursePageResponse == null || !coursePageResponse.IsSuccessStatusCode)
             {
                 _logger.Log($"Failed to get course page content of {courseUrl}");
                 yield break;

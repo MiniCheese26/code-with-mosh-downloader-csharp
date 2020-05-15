@@ -14,7 +14,7 @@ namespace codeWithMoshDownloader.ArgumentParsing
         [Option('q', "quality", SetName = "normal-download", HelpText = "Select the quality used when downloading, overrides config quality | Example 1280x720")]
         public string Quality { get; set; } = null!;
 
-        [Option('Q', "check-quality", SetName = "normal-download", HelpText = "Print qualities available for requested content, will not download")]
+        [Option('Q', "check-quality", SetName = "normal-download", HelpText = "Print qualities available for requested content, will not download anything")]
         public bool CheckQuality { get; set; }
 
         private int _courseStartingIndex;

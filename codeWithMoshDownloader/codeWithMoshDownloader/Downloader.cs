@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using codeWithMoshDownloader.ArgumentParsing;
-using codeWithMoshDownloader.PageParser.Models;
+using codeWithMoshDownloader.PageParser;
+using codeWithMoshDownloader.PageParser.Models.Lectures;
 using GenericHelperLibs;
 
 namespace codeWithMoshDownloader
@@ -50,9 +50,45 @@ namespace codeWithMoshDownloader
 
         private async Task<bool> DownloadLecture()
         {
+            const string testUrl = "https://codewithmosh.com/courses/228831/lectures/3563950";
             var l = new CodeWithMoshPageParser(_codeWithMoshClient, _logger);
-            Lecture? e = await l.ParseLecture("https://codewithmosh.com/courses/223623/lectures/3517438");
+            Lecture? e = await l.ParseLecture(testUrl);
             
+            if (e == null)
+                return false;
+            
+            (string? courseTitle, string? sectionTitle) = await l.ParseSectionAndCourseTitleFromLecture(
+                testUrl);
+
+            if (courseTitle == null)
+            {
+                courseTitle = DownloaderHelpers.GetRandomOutputName();
+                _logger.Log($"Failed to parse course title from lecture page, using {courseTitle} as a random name");
+            }
+            else if (sectionTitle == null)
+            {
+                sectionTitle = DownloaderHelpers.GetRandomOutputName();
+                _logger.Log($"Failed to parse section title from lecture page, using {sectionTitle} as a random name");
+            }
+            else
+            {
+                courseTitle.CleanStringForFolderName();
+                sectionTitle.CleanStringForFolderName();
+            }
+
+            if (e.WistiaLectureStream != null)
+            {
+                if (_downloadArguments.CheckQuality)
+                {
+                    await e.WistiaLectureStream.PrintQualities();
+                    return true;
+                }
+
+                var q = await e.WistiaLectureStream.Download(string.IsNullOrWhiteSpace(_downloadArguments.Quality)
+                    ? _config.DefaultQuality
+                    : _downloadArguments.Quality);
+            }
+
             return true;
         }
 

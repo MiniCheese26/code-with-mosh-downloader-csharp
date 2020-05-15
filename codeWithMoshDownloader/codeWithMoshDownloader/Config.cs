@@ -8,14 +8,26 @@ namespace codeWithMoshDownloader
     {
         [JsonProperty("sessionId")]
         public string? SessionId { get; set; }
+
+        private string _defaultQuality = "1920x1080";
         
         [JsonProperty("defaultQuality")]
-        public string? DefaultQuality { get; set; }
-        
-        private string? _downloadLocation;
+        public string DefaultQuality
+        {
+            get => _defaultQuality;
+            set
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                    value = "1920x1080";
+                
+                _defaultQuality = value;
+            }
+        }
+
+        private string _downloadLocation = Path.Join(Helpers.GetAssemblyDirectoryPath(), "Downloads");
 
         [JsonProperty("downloadLocation")]
-        public string? DownloadLocation
+        public string DownloadLocation
         {
             get => _downloadLocation;
             set
